@@ -16,7 +16,7 @@ Recent advances in **Generative AI** such as GANs and diffusion models allow the
 
 Traditional fake image detectors often fail to **generalize across different generative models** and provide **little interpretability**.
 
-This project aims to develop a **universal synthetic image detection framework**. We Made the following contributions:
+This project aims to develop a **universal synthetic image detection framework**. We made the following contributions:
 
 - A rigorous mathematical taxonomy of generator-specific artifact signatures spanning spatial, frequency (FFT/DCT/DWT), statistical, and sensor-physics domains.
 - Developed a novel transformer architechture called Multi-Stream Spectral Transformer (MSST), the first architecture to unify all five signal domains under a single gated-attention backbone with swappable task heads.
@@ -25,83 +25,51 @@ This project aims to develop a **universal synthetic image detection framework**
 - We present comparative analysis demonstrating the superiority of multi-domain approaches over single-domain baselines and document robustness under six real-world image degradation conditions.
 - Finally, we integrate interpretable explanations by artifact localization.
 
----
-
-# Current Milestone Implementation
-
-The current milestone implements a **complete baseline detection pipeline**.
-
-Pipeline workflow:
-
-```
-Dataset Preparation
-        ↓
-Image Preprocessing
-        ↓
-VGG16 CNN Training
-        ↓
-Model Evaluation
-        ↓
-Confusion Matrix Analysis
-        ↓
-Grad-CAM Visualization
-        ↓
-LLM Artifact Explanation
-```
-
-This baseline establishes the **experimental infrastructure** for developing the final universal detection architecture.
+# Project Structure
+deepfake-detection/
+├── src/
+│   ├── models/
+│   │   ├── msst.py          # Full MSST model
+│   │   ├── components.py    # DWT, gating, stream modules
+│   │   └── heads.py         # Swappable task heads
+│   ├── data/
+│   │   ├── dataset.py       # DeepfakeDataset
+│   │   └── extractor.py     # ExpertPhysicsExtractor (52 features)
+│   └── utils/
+│       └── scaler.py        # StandardScaler fitting
+├── configs/
+│   └── default.yaml         # Training hyperparameters
+├── scripts/
+│   └── train.py             # Training entry point
+├── notebooks/               # Jupyter notebooks
+├── checkpoints/             # Saved models (git-ignored)
+├── results/                 # Plots and logs (git-ignored)
+├── requirements.txt
+└── README.md
 
 ---
+## Citation
 
-# Dataset
-
-The project uses the **CiFake Dataset**, which contains both **real images** and **AI-generated synthetic images**.
-
-Dataset structure used in the project:
-
+```bibtex
+@article{msst2025,
+  title   = {Multi-Stream Spectral Transformer for
+             Robust AI-Generated Image Detection},
+  author  = {Md Tanvir Mahmud Prince},
+  year    = {2026},
+}
 ```
-dataset/
-    train/
-        real/
-        fake/
-    validation/
-        real/
-        fake/
-    test/
-        real/
-        fake/
-```
-
-Images are resized to:
-
-```
-224 × 224
-```
-
-to match the input requirements of the VGG16 architecture.
 
 ---
 
-# Model Architecture
+## License
 
-The baseline detector uses **Transfer Learning with VGG16**.
+MIT License — see [LICENSE](LICENSE) for details.
+Finally, copy your existing trained files into the structure:
+python# ============================================================
+# Copy existing trained artifacts into the new structure
+# ============================================================
 
-Architecture:
-
-```
-Input Image (224x224x3)
-        ↓
-Pretrained VGG16 Convolution Layers
-        ↓
-Global Pooling
-        ↓
-Fully Connected Layers
-        ↓
-Sigmoid Output Layer
-        ↓
-Binary Classification
-        (Real vs Fake)
-```
+---
 
 ### Training Configuration
 
@@ -166,35 +134,6 @@ and produces **human-readable explanations** describing why the image is likely 
 Example explanation:
 
 > “The classifier detected irregular high-frequency textures and unnatural structural patterns consistent with artifacts produced by generative models.”
-
----
-
-# Project Structure
-
-```
-AI-Universal-Synthetic-Image-Detection
-│
-├── notebooks
-│   └── Capstone_project_milstone.ipynb
-│
-├── dataset
-│   ├── train
-│   ├── validation
-│   └── test
-│
-├── models
-│   └── trained_model.h5
-│
-├── results
-│   ├── confusion_matrix.png
-│   ├── gradcam_examples
-│   └── evaluation_outputs
-│
-├── report
-│   └── milestone_report.pdf
-│
-└── README.md
-```
 
 ---
 
