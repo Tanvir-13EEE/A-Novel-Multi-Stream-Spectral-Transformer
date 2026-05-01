@@ -1,5 +1,5 @@
 
-# AI Generated Universal Synthetic Image Detection
+# A Multi-Stream Spectral Transformer for Universal Synthetic Image Detection
 
 A research project focused on detecting **AI-generated synthetic images** using deep learning and explainable AI techniques. This project implements a baseline detector using **VGG16**, evaluates it on the **CiFake dataset**, and explores **artifact explainability using Grad-CAM and LLM-based interpretation**.
 
