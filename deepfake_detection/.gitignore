@@ -1,0 +1,22 @@
+# Data
+data/
+Database/
+*.pkl
+*.pth
+*.pt
+
+# Results (generated)
+checkpoints/
+results/
+Baselines/
+Model/
+Model_pretrained/
+Evaluation/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+*.egg-info/
+dist/
+build/
+.env
+*.log

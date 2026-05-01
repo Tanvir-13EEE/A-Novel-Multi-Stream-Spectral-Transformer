@@ -1,0 +1,32 @@
+# ============================================================
+# Default training configuration
+# ============================================================
+
+data:
+  root_dir   : "Database/cnn_spot"
+  img_size   : 224
+  batch_size : 64
+  num_workers: 8
+
+model:
+  d_model    : 256
+  num_heads  : 8
+  num_layers : 6
+  task       : "binary"
+  num_classes: 2
+
+training:
+  epochs       : 15
+  lr           : 1.0e-4
+  weight_decay : 1.0e-4
+  label_smoothing: 0.1
+  grad_clip    : 1.0
+  scheduler    : "cosine"
+  eta_min      : 1.0e-6
+
+paths:
+  save_dir   : "checkpoints"
+  scaler_name: "scaler_52feat.pkl"
+  best_model : "best_model.pth"
+  history    : "history.json"
+  plot       : "training_curves.png"
