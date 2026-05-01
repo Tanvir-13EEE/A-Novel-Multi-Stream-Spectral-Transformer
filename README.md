@@ -26,6 +26,7 @@ This project aims to develop a **universal synthetic image detection framework**
 - Finally, we integrate interpretable explanations by artifact localization.
 
 # Project Structure
+```
 deepfake-detection/
 ├── src/
 │   ├── models/
@@ -46,6 +47,7 @@ deepfake-detection/
 ├── results/                 # Plots and logs (git-ignored)
 ├── requirements.txt
 └── README.md
+```
 
 ---
 ## Citation
