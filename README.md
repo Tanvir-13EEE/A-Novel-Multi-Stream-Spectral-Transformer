@@ -53,8 +53,6 @@ The backbone is pre-trained with **Masked Spectral Modeling**: 50% of tokens acr
 
 *Evaluated on an 8,000-image held-out CIFAKE validation subset.*
 
-![Ablation Summary](assets/ablation_summary.png)
-
 The single most important finding: a **spatial ViT trained on the same data performs at statistical chance (51.29%)**, while the spectral streams alone reach 99.16% — direct evidence that invisible frequency-domain signals, not visible spatial texture, are what makes synthetic images detectable. Multi-scale DWT is the single most load-bearing component (a 43.52-point collapse when removed), and the learned MoE gate weight for a given stream correlates strongly with how much accuracy is lost if that stream is ablated — meaning gate weight can be used as a cheap, label-free proxy for stream importance during model compression.
 
 ## Representation Quality
@@ -77,25 +75,35 @@ Grad-CAM activations confirm the model is exploiting genuine frequency artifacts
 | [CNNSpot](https://github.com/PeterWang512/CNNDetection) | ~720K images, 20 GAN families | Cross-generator generalization |
 | [FaceForensics++](https://github.com/ondyari/FaceForensics) | 6,000 video sequences, 5 manipulation types | Face-forgery / localization |
 
-## Repository Structure
-
+# Project Structure
 ```
-.
-├── models/              # MSST backbone, stream encoders, MoE fusion, task heads
-├── data/                # Dataset loaders (CIFAKE, CNNSpot, FaceForensics++)
-├── pretrain/            # Masked Spectral Modeling self-supervised pre-training
-├── train/               # Fine-tuning scripts for binary / multiclass / localization heads
-├── ablation/            # Component ablation and gate-weight evolution analysis
-├── explainability/      # Grad-CAM + LLM interpretation pipeline
-├── notebooks/           # t-SNE, PSD/PRNU analysis, figure generation
-└── configs/             # Training and architecture configs
+deepfake-detection/
+├── src/
+│   ├── models/
+│   │   ├── msst.py          # Full MSST model
+│   │   ├── components.py    # DWT, gating, stream modules
+│   │   └── heads.py         # Swappable task heads
+│   ├── data/
+│   │   ├── dataset.py       # DeepfakeDataset
+│   │   └── extractor.py     # ExpertPhysicsExtractor (52 features)
+│   └── utils/
+│       └── scaler.py        # StandardScaler fitting
+├── configs/
+│   └── default.yaml         # Training hyperparameters
+├── scripts/
+│   └── train.py             # Training entry point
+├── notebooks/               # Jupyter notebooks
+├── checkpoints/             # Saved models (git-ignored)
+├── results/                 # Plots and logs (git-ignored)
+├── requirements.txt
+└── README.md
 ```
 
 ## Getting Started
 
 ```bash
-git clone https://github.com/Tanvir-13EEE/Capstone-Project-Adv-ML2.git
-cd Capstone-Project-Adv-ML2
+git clone https://github.com/Tanvir-13EEE/A-Novel-Multi-Stream-Spectral-Transformer.git
+cd A-Novel-Multi-Stream-Spectral-Transformer
 pip install -r requirements.txt
 ```
 
