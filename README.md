@@ -1,12 +1,12 @@
-# MSST: Multi-Stream Spectral Transformer for Universal Synthetic/ AI Generated Image Detection
-
-Most synthetic-image detectors chase the wrong target: they learn to spot *visible* failures of a particular generator — extra fingers, warped text, asymmetric eyes — and lose all power the mom[...]
-
+# MSST: Multi-Stream Spectral Transformer for Universal Synthetic Image Detection
+ 
+Most synthetic-image detectors chase the wrong target: they learn to spot *visible* failures of a particular generator — extra fingers, warped text, asymmetric eyes — and lose all power the moment the generator's next version fixes that failure. MSST is built on the opposite premise. Every generative model, regardless of family, leaves behind *invisible* signal-level fingerprints that are mathematically unavoidable consequences of how it synthesizes pixels: transposed convolutions imprint periodic spectral replicas, anti-aliasing filters imprint a hard cutoff in the power spectral density, and the complete absence of a physical camera sensor erases the PRNU noise pattern that every real photograph carries. These signatures cannot be "fixed" away without trading off image quality, which is what makes them a durable basis for detection. MSST is, to our knowledge, the first architecture to unify all five of these signal domains — spatial, FFT, DCT, DWT, and sensor-physics statistics — inside a single differentiable backbone, fuse them with a gated Mixture-of-Experts router that learns *per-image* which domain is most diagnostic, and pre-train the whole thing with a self-supervised Masked Spectral Modeling objective that requires no real/fake labels at all. The result is a single 1024-dimensional "universal spectral embedding" that a 2-layer MLP head can classify with near-perfect accuracy, even though a spatial Vision Transformer trained on the same data does no better than chance.
+ 
 [![Paper](https://img.shields.io/badge/Paper-PDF-red)](#)
 [![License](https://img.shields.io/badge/License-MIT-blue)](#license)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue)](#)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.x-ee4c2c)](#)
-
+ 
 ---
 
 ## What is New
