@@ -9,7 +9,7 @@ Most synthetic-image detectors chase the wrong target: they learn to spot *visib
 
 ---
 
-## Why This Is Novel
+## What is New
 
 | Prior work | MSST |
 |---|---|
