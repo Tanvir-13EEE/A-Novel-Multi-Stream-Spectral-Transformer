@@ -1,233 +1,138 @@
+# MSST: Multi-Stream Spectral Transformer for Universal Synthetic Image Detection
 
-# A Multi-Stream Spectral Transformer for Universal Synthetic Image Detection
+Most synthetic-image detectors chase the wrong target: they learn to spot *visible* failures of a particular generator — extra fingers, warped text, asymmetric eyes — and lose all power the moment the generator's next version fixes that failure. MSST is built on the opposite premise. Every generative model, regardless of family, leaves behind *invisible* signal-level fingerprints that are mathematically unavoidable consequences of how it synthesizes pixels: transposed convolutions imprint periodic spectral replicas, anti-aliasing filters imprint a hard cutoff in the power spectral density, and the complete absence of a physical camera sensor erases the PRNU noise pattern that every real photograph carries. These signatures cannot be "fixed" away without trading off image quality, which is what makes them a durable basis for detection. MSST is, to our knowledge, the first architecture to unify all five of these signal domains — spatial, FFT, DCT, DWT, and sensor-physics statistics — inside a single differentiable backbone, fuse them with a gated Mixture-of-Experts router that learns *per-image* which domain is most diagnostic, and pre-train the whole thing with a self-supervised Masked Spectral Modeling objective that requires no real/fake labels at all. The result is a single 1024-dimensional "universal spectral embedding" that a 2-layer MLP head can classify with near-perfect accuracy, even though a spatial Vision Transformer trained on the same data does no better than chance.
 
-A research project focused on detecting **AI-generated synthetic images** using deep learning and explainable AI techniques. This project implements a baseline detector using **VGG16**, evaluates it on the **CiFake dataset**, and explores **artifact explainability using Grad-CAM and LLM-based interpretation**.
-
----
-
-# Project Overview
-
-Recent advances in **Generative AI** such as GANs and diffusion models allow the creation of highly realistic synthetic images. While these technologies have many positive applications, they also introduce risks including:
-
-- misinformation
-- identity manipulation
-- deepfake media
-- digital fraud
-
-Traditional fake image detectors often fail to **generalize across different generative models** and provide **little interpretability**.
-
-This project aims to develop a **universal synthetic image detection framework**. We made the following contributions:
-
-- A rigorous mathematical taxonomy of generator-specific artifact signatures spanning spatial, frequency (FFT/DCT/DWT), statistical, and sensor-physics domains.
-- Developed a novel transformer architechture called Multi-Stream Spectral Transformer (MSST), the first architecture to unify all five signal domains under a single gated-attention backbone with swappable task heads.
-- We introduce Masked Spectral Modeling (MSM) as a self-supervised pre-training objective that teaches the backbone the physics of digital image frequencies without task-specific bias.
-- We derive formal proofs for the principal artifact signatures exploited by each detection stream and relate them to their generative-process causes.
-- We present comparative analysis demonstrating the superiority of multi-domain approaches over single-domain baselines and document robustness under six real-world image degradation conditions.
-- Finally, we integrate interpretable explanations by artifact localization.
-
-# Project Structure
-```
-deepfake-detection/
-├── src/
-│   ├── models/
-│   │   ├── msst.py          # Full MSST model
-│   │   ├── components.py    # DWT, gating, stream modules
-│   │   └── heads.py         # Swappable task heads
-│   ├── data/
-│   │   ├── dataset.py       # DeepfakeDataset
-│   │   └── extractor.py     # ExpertPhysicsExtractor (52 features)
-│   └── utils/
-│       └── scaler.py        # StandardScaler fitting
-├── configs/
-│   └── default.yaml         # Training hyperparameters
-├── scripts/
-│   └── train.py             # Training entry point
-├── notebooks/               # Jupyter notebooks
-├── checkpoints/             # Saved models (git-ignored)
-├── results/                 # Plots and logs (git-ignored)
-├── requirements.txt
-└── README.md
-```
+[![Paper](https://img.shields.io/badge/Paper-PDF-red)](#)
+[![License](https://img.shields.io/badge/License-MIT-blue)](#license)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue)](#)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.x-ee4c2c)](#)
 
 ---
+
+## Why This Is Novel
+
+| Prior work | MSST |
+|---|---|
+| Single-domain detectors (spatial CNN, or FFT-only, or DWT-only) | First architecture to unify spatial, FFT, DCT, DWT, **and** sensor-physics streams in one model |
+| Fixed, hand-tuned fusion of features | Learned **gated Mixture-of-Experts** fusion that adapts stream weighting per input, per generator family |
+| Supervised training only, no transferable backbone | **Masked Spectral Modeling (MSM)**: self-supervised pre-training on spectral tokens, label-free, MAE-style |
+| One task per model (usually binary) | One frozen backbone, three swappable heads: binary detection, generator identification, forgery localization |
+| Black-box predictions | Grad-CAM + LLM-assisted natural-language explanations of *why* a region was flagged |
+
+## Architecture
+
+The image is routed through five parallel domain-specific branches, fused by a gated MoE module, encoded by a 12-layer Transformer, and projected to a universal embedding that feeds three lightweight task heads.
+
+![MSST Architecture](assets/architecture.png)
+
+**Pipeline at a glance:**
+
+1. **Spatial branch** — standard ViT-style patch embedding.
+2. **FFT branch** — log-magnitude + phase spectrum, tokenized.
+3. **DCT branch** — 8×8 block-wise coefficients (JPEG-aligned).
+4. **DWT branch** — Haar wavelet sub-bands (LL/LH/HL/HH), with the diagnostic HH band up-weighted by a learnable scalar.
+5. **Physics/Statistics tokenizer** — deterministic per-patch PSD slope, PRNU correlation, kurtosis/skewness, SNR, and cutoff frequency.
+
+A gating network scores each stream's relevance per image, rescales the token streams accordingly, and a 12-layer Transformer encoder fuses everything into a 1024-d **Universal Spectral Embedding**, which is consumed by three frozen-backbone heads:
+
+- **Binary head** — real vs. fake
+- **Multi-class head** — generator family identification (StyleGAN2/3, ProGAN, SD 1.5/XL, DALL-E 3, Midjourney, real)
+- **Localization head** — pixel-level forgery mask via an FPN decoder
+
+The backbone is pre-trained with **Masked Spectral Modeling**: 50% of tokens across all five streams are randomly masked and reconstructed, teaching the model the joint statistics of frequency, sensor-noise, and PSD features without ever seeing a real/fake label.
+
+## Key Results
+
+| Configuration | Accuracy | Δ vs. Full | Δ vs. Spatial ViT |
+|---|---|---|---|
+| **Full model (MSST)** | **99.89%** | — | — |
+| Spectral streams only (no ViT) | 99.16% | −0.72% | +47.88% |
+| No gating (uniform stream weights) | 94.30% | −5.59% | +43.01% |
+| No multi-scale DWT (P2) | 56.36% | −43.52% | +5.08% |
+| Spatial ViT only (baseline) | 51.29% | −48.60% | baseline |
+
+*Evaluated on an 8,000-image held-out CIFAKE validation subset.*
+
+![Ablation Summary](assets/ablation_summary.png)
+
+The single most important finding: a **spatial ViT trained on the same data performs at statistical chance (51.29%)**, while the spectral streams alone reach 99.16% — direct evidence that invisible frequency-domain signals, not visible spatial texture, are what makes synthetic images detectable. Multi-scale DWT is the single most load-bearing component (a 43.52-point collapse when removed), and the learned MoE gate weight for a given stream correlates strongly with how much accuracy is lost if that stream is ablated — meaning gate weight can be used as a cheap, label-free proxy for stream importance during model compression.
+
+## Representation Quality
+
+t-SNE projection of the CLS embedding on 8,000 CIFAKE test images shows large-margin, near-perfectly separated clusters (AUC = 0.9997), with the 28 total errors confined to the cluster boundary:
+
+![t-SNE Analysis](assets/tsne_analysis.png)
+
+## Explainability
+
+Grad-CAM activations confirm the model is exploiting genuine frequency artifacts rather than semantic shortcuts: real images show activation spread diffusely across the frame (consistent with whole-image sensor noise), while fake images show activation concentrated centrally, matching where diffusion decoders deposit the densest upsampling artifacts. A Gemma-2 LLM pipeline converts these heatmaps into natural-language forensic explanations for auditability.
+
+![Grad-CAM Heatmaps](assets/gradcam.png)
+
+## Datasets
+
+| Dataset | Scale | Use |
+|---|---|---|
+| [CIFAKE](https://www.kaggle.com/datasets/birdy654/cifake-real-and-ai-generated-synthetic-images) | 120K images, CIFAR-10 vs. Stable Diffusion v1.4 | Primary benchmark |
+| [CNNSpot](https://github.com/PeterWang512/CNNDetection) | ~720K images, 20 GAN families | Cross-generator generalization |
+| [FaceForensics++](https://github.com/ondyari/FaceForensics) | 6,000 video sequences, 5 manipulation types | Face-forgery / localization |
+
+## Repository Structure
+
+```
+.
+├── models/              # MSST backbone, stream encoders, MoE fusion, task heads
+├── data/                # Dataset loaders (CIFAKE, CNNSpot, FaceForensics++)
+├── pretrain/            # Masked Spectral Modeling self-supervised pre-training
+├── train/               # Fine-tuning scripts for binary / multiclass / localization heads
+├── ablation/            # Component ablation and gate-weight evolution analysis
+├── explainability/      # Grad-CAM + LLM interpretation pipeline
+├── notebooks/           # t-SNE, PSD/PRNU analysis, figure generation
+└── configs/             # Training and architecture configs
+```
+
+## Getting Started
+
+```bash
+git clone https://github.com/Tanvir-13EEE/Capstone-Project-Adv-ML2.git
+cd Capstone-Project-Adv-ML2
+pip install -r requirements.txt
+```
+
+### Pre-train the backbone (Masked Spectral Modeling)
+
+```bash
+python pretrain/train_msm.py --config configs/msm_pretrain.yaml
+```
+
+### Fine-tune a detection head
+
+```bash
+python train/finetune.py --task binary --dataset cifake --checkpoint checkpoints/msm_backbone.pt
+```
+
+### Run inference
+
+```bash
+python infer.py --image path/to/image.png --checkpoint checkpoints/msst_binary.pt
+```
+
 ## Citation
 
 ```bibtex
-@article{msst2025,
-  title   = {Multi-Stream Spectral Transformer for
-             Robust AI-Generated Image Detection},
-  author  = {Md Tanvir Mahmud Prince},
-  year    = {2026},
+@article{prince2026msst,
+  title   = {Visible Artifacts Are Not the Only Clues That Can Help Detect Fakes:
+             A Multi-Stream Spectral Transformer for Universal Synthetic Image Detection},
+  author  = {Mahmud Prince, Md Tanvir},
+  journal = {Dept. of ECE, Virginia Tech},
+  year    = {2026}
 }
 ```
 
----
-
 ## License
 
-MIT License — see [LICENSE](LICENSE) for details.
-Finally, copy your existing trained files into the structure:
-python# ============================================================
+This project is released under the MIT License. See [LICENSE](LICENSE) for details.
 
-# Model Evaluation
+## Contact
 
-Model performance is evaluated using:
-
-- Classification accuracy
-- Confusion matrix
-- Prediction confidence
-
-The confusion matrix helps identify:
-
-- **True Positives** – correctly detected fake images
-- **True Negatives** – correctly detected real images
-- **False Positives** – real images incorrectly labeled as fake
-- **False Negatives** – synthetic images classified as real
-
-These results provide insight into **model reliability and failure cases**.
-
----
-
-# Explainability with Grad-CAM
-
-Deep neural networks often behave as **black-box models**. To interpret predictions, the project integrates **Grad-CAM (Gradient-weighted Class Activation Mapping)**.
-
-Grad-CAM highlights the **image regions most responsible for a prediction**.
-
-Example insights:
-
-- irregular textures
-- unnatural edges
-- high-frequency artifact regions
-- inconsistent patterns
-
-These visual explanations help identify **synthetic artifacts introduced by generative models**.
-
----
-
-# Artifact Interpretation Using LLM
-
-To further improve interpretability, the project integrates a **Large Language Model (LLM)**.
-
-The LLM analyzes:
-
-- model prediction confidence
-- Grad-CAM heatmaps
-- artifact regions
-
-and produces **human-readable explanations** describing why the image is likely synthetic.
-
-Example explanation:
-
-> “The classifier detected irregular high-frequency textures and unnatural structural patterns consistent with artifacts produced by generative models.”
-
----
-
-# How to Run the Project
-
-### 1. Install Dependencies
-
-```
-pip install tensorflow
-pip install numpy
-pip install matplotlib
-pip install scikit-learn
-pip install opencv-python
-pip install split-folders
-```
-
----
-
-### 2. Clone Repository
-
-```
-git clone https://github.com/yourusername/AI-Synthetic-Image-Detection
-cd AI-Synthetic-Image-Detection
-```
-
----
-
-### 3. Run Notebook
-
-```
-jupyter notebook
-```
-
-Open:
-
-```
-Capstone_project_milstone.ipynb
-```
-
-and run the cells sequentially.
-
----
-
-# Future Work
-
-The final phase of this project will implement a **Hybrid Multi-Domain Detection Architecture**.
-
-Planned improvements:
-
-### Frequency Domain Artifact Detection
-
-Using:
-
-- Fast Fourier Transform (FFT)
-- Discrete Cosine Transform (DCT)
-- Discrete Wavelet Transform (DWT)
-- Expert Physics Extractor (SNR, PSD, PRNU, Kurtosis distribution etc.)
-
-to detect spectral inconsistencies.
-
-### Hybrid Spatial–Frequency Model
-
-```
-Spatial Branch
-        +
-Spectral Branche
-        ↓
-Feature Fusion
-        ↓
-Universal Fake Image Detector
-```
-
-### Cross-Generator Generalization
-
-Testing robustness across:
-
-- GAN models
-- diffusion models
-- autoregressive generators
-
-### Robustness Testing
-
-Evaluate performance under:
-
-- JPEG compression
-- Gaussian noise
-- image resizing
-- adversarial perturbations
-
----
-
-# Author
-
-**Tanvir Mahmud Prince**
-
-MSc Electrical Engineering
-
-Research interests:
-
-- Artificial Intelligence
-- Computer Vision
-- Synthetic Media Detection
-- AI for Digital Forensics
-
----
-
-# References
-
-1. Ojha et al., *Towards Universal Fake Image Detectors that Generalize Across Generative Models*, CVPR 2023.
-2. Zhang et al., *Perceptual Artifacts Localization for Image Synthesis Tasks*, ICCV 2023.
-3. Jia et al., *Can ChatGPT Detect Deepfakes?*, CVPR 2024.
+Md Tanvir Mahmud Prince — Dept. of ECE, Virginia Tech — tanvir@vt.edu
