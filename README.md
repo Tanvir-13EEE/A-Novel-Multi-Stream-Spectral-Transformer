@@ -1,6 +1,6 @@
 # MSST: Multi-Stream Spectral Transformer for Universal Synthetic/ AI Generated Image Detection
 
-Most synthetic-image detectors chase the wrong target: they learn to spot *visible* failures of a particular generator — extra fingers, warped text, asymmetric eyes — and lose all power the moment the generator's next version fixes that failure. MSST is built on the opposite premise. Every generative model, regardless of family, leaves behind *invisible* signal-level fingerprints that are mathematically unavoidable consequences of how it synthesizes pixels: transposed convolutions imprint periodic spectral replicas, anti-aliasing filters imprint a hard cutoff in the power spectral density, and the complete absence of a physical camera sensor erases the PRNU noise pattern that every real photograph carries. These signatures cannot be "fixed" away without trading off image quality, which is what makes them a durable basis for detection. MSST is, to our knowledge, the first architecture to unify all five of these signal domains — spatial, FFT, DCT, DWT, and sensor-physics statistics — inside a single differentiable backbone, fuse them with a gated Mixture-of-Experts router that learns *per-image* which domain is most diagnostic, and pre-train the whole thing with a self-supervised Masked Spectral Modeling objective that requires no real/fake labels at all. The result is a single 1024-dimensional "universal spectral embedding" that a 2-layer MLP head can classify with near-perfect accuracy, even though a spatial Vision Transformer trained on the same data does no better than chance.
+Most synthetic-image detectors chase the wrong target: they learn to spot *visible* failures of a particular generator — extra fingers, warped text, asymmetric eyes — and lose all power the mom[...]
 
 [![Paper](https://img.shields.io/badge/Paper-PDF-red)](#)
 [![License](https://img.shields.io/badge/License-MIT-blue)](#license)
@@ -21,7 +21,7 @@ Most synthetic-image detectors chase the wrong target: they learn to spot *visib
 
 ## Architecture
 
-The image is routed through five parallel domain-specific branches, fused by a gated MoE module, encoded by a 12-layer Transformer, and projected to a universal embedding that feeds three lightweight task heads.
+The image is routed through five parallel domain-specific branches, fused by a gated MoE module, encoded by a 12-layer Transformer, and projected to a universal embedding that feeds three lightwei[...]
 
 ![MSST Architecture](assets/architecture.png)
 
@@ -33,13 +33,13 @@ The image is routed through five parallel domain-specific branches, fused by a g
 4. **DWT branch** — Haar wavelet sub-bands (LL/LH/HL/HH), with the diagnostic HH band up-weighted by a learnable scalar.
 5. **Physics/Statistics tokenizer** — deterministic per-patch PSD slope, PRNU correlation, kurtosis/skewness, SNR, and cutoff frequency.
 
-A gating network scores each stream's relevance per image, rescales the token streams accordingly, and a 12-layer Transformer encoder fuses everything into a 1024-d **Universal Spectral Embedding**, which is consumed by three frozen-backbone heads:
+A gating network scores each stream's relevance per image, rescales the token streams accordingly, and a 12-layer Transformer encoder fuses everything into a 1024-d **Universal Spectral Embedding**, w[...]
 
 - **Binary head** — real vs. fake
 - **Multi-class head** — generator family identification (StyleGAN2/3, ProGAN, SD 1.5/XL, DALL-E 3, Midjourney, real)
 - **Localization head** — pixel-level forgery mask via an FPN decoder
 
-The backbone is pre-trained with **Masked Spectral Modeling**: 50% of tokens across all five streams are randomly masked and reconstructed, teaching the model the joint statistics of frequency, sensor-noise, and PSD features without ever seeing a real/fake label.
+The backbone is pre-trained with **Masked Spectral Modeling**: 50% of tokens across all five streams are randomly masked and reconstructed, teaching the model the joint statistics of frequency, se[...]
 
 ## Key Results
 
@@ -53,7 +53,7 @@ The backbone is pre-trained with **Masked Spectral Modeling**: 50% of tokens acr
 
 *Evaluated on an 8,000-image held-out CIFAKE validation subset.*
 
-The single most important finding: a **spatial ViT trained on the same data performs at statistical chance (51.29%)**, while the spectral streams alone reach 99.16% — direct evidence that invisible frequency-domain signals, not visible spatial texture, are what makes synthetic images detectable. Multi-scale DWT is the single most load-bearing component (a 43.52-point collapse when removed), and the learned MoE gate weight for a given stream correlates strongly with how much accuracy is lost if that stream is ablated — meaning gate weight can be used as a cheap, label-free proxy for stream importance during model compression.
+The single most important finding: a **spatial ViT trained on the same data performs at statistical chance (51.29%)**, while the spectral streams alone reach 99.16% — direct evidence that invisi[...]
 
 ## Representation Quality
 
@@ -63,7 +63,7 @@ t-SNE projection of the CLS embedding on 8,000 CIFAKE test images shows large-ma
 
 ## Explainability
 
-Grad-CAM activations confirm the model is exploiting genuine frequency artifacts rather than semantic shortcuts: real images show activation spread diffusely across the frame (consistent with whole-image sensor noise), while fake images show activation concentrated centrally, matching where diffusion decoders deposit the densest upsampling artifacts. A Gemma-2 LLM pipeline converts these heatmaps into natural-language forensic explanations for auditability.
+Grad-CAM activations confirm the model is exploiting genuine frequency artifacts rather than semantic shortcuts: real images show activation spread diffusely across the frame (consistent with whol[...]
 
 ![Grad-CAM Heatmaps](assets/gradcam.png)
 
@@ -98,9 +98,8 @@ deepfake-detection/
 ├── requirements.txt
 └── README.md
 ```
-<iframe width="640" height="480" src="https://www.youtube.com/embed/qfQqbIMZBVs" 
-  frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; 
-  gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+[![MSST Demo Video](https://img.youtube.com/vi/qfQqbIMZBVs/0.jpg)](https://www.youtube.com/watch?v=qfQqbIMZBVs)
 
 ## Getting Started
 
